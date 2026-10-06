@@ -175,3 +175,34 @@ def search(index: Index, query: str, facet: str = "all", limit: int = 8) -> list
             scored.append((score, chunk))
     scored.sort(key=lambda row: -row[0])
     return [chunk for _, chunk in scored[:limit]]
+
+
+_CACHE: dict = {"sig": None, "index": None}
+
+
+def docs_signature(docs_root: Path) -> tuple:
+    if not docs_root.is_dir():
+        return ("missing",)
+    newest = 0
+    count = 0
+    for path in docs_root.rglob("*.md"):
+        count += 1
+        newest = max(newest, path.stat().st_mtime_ns)
+    return (str(docs_root), count, newest)
+
+
+def get_cached_index(docs_root: Path, community: list[dict]) -> Index:
+    sig = (docs_signature(docs_root), len(community))
+    if _CACHE["sig"] == sig and _CACHE["index"] is not None:
+        return _CACHE["index"]
+    index = build_index(docs_root, community)
+    _CACHE["sig"] = sig
+    _CACHE["index"] = index
+    return index
+
+
+def docs_root_for_install() -> Path | None:
+    import hermes_cli
+
+    root = Path(hermes_cli.__file__).resolve().parent.parent / "website" / "docs"
+    return root if root.is_dir() else None
