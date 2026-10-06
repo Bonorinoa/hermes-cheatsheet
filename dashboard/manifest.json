@@ -1,0 +1,7 @@
+{
+  "name": "cheatsheet",
+  "label": "Cheatsheet",
+  "description": "Cited practices search over this install's docs.",
+  "version": "0.1.0",
+  "api": "plugin_api.py"
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "gh:71446",
+    "kind": "issue",
+    "where": "GitHub",
+    "title": "fix(desktop): custom backend skins don't persist across restarts",
+    "url": "https://github.com/NousResearch/hermes-agent/issues/71446",
+    "text": "Custom skins defined in ~/.hermes/skins/*.yaml don't survive a desktop restart. The user has to manually run /skin <name> after every launch even though display.skin is set in config.yaml and the desktop persisted the skin name to localStorage. normalizeSkin() rejects any theme name not currently in the live theme registry. Backend skins are registered asynchronously after the gateway connects, so on boot the name is rejected and falls back to nous."
+  }
+]
