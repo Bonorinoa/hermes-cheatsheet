@@ -6,5 +6,29 @@
     "title": "fix(desktop): custom backend skins don't persist across restarts",
     "url": "https://github.com/NousResearch/hermes-agent/issues/71446",
     "text": "Custom skins defined in ~/.hermes/skins/*.yaml don't survive a desktop restart. The user has to manually run /skin <name> after every launch even though display.skin is set in config.yaml and the desktop persisted the skin name to localStorage. normalizeSkin() rejects any theme name not currently in the live theme registry. Backend skins are registered asynchronously after the gateway connects, so on boot the name is rejected and falls back to nous."
+  },
+  {
+    "id": "gh:81785",
+    "kind": "issue",
+    "where": "GitHub",
+    "title": "Desktop theming is capped by hardcoded CSS knobs, a fixed Shiki theme, and a 4-token syntax schema",
+    "url": "https://github.com/NousResearch/hermes-agent/issues/81785",
+    "text": "The desktop app's theme system can't produce some basic looks, and the limits are hardcoded, not just missing polish. Tested with a full custom DesktopTheme contributed via THEMES_AREA plus a skin: 1. **Accent-mix knobs are hardcoded in styles.css and unreachable from themes.** --theme-row-active-accent-mix: 8%, --theme-row-hover-accent-mix: 4%, --theme-control-active-accent-mix: 8%, and (dark) --theme-mix-bubble: 46% are fixed values. A bright userBubble renders as near-background navy because the bubble mixes the seed at 46% toward the dark neutral. Workaround is a plugin-injected CSS override that must match :root.dark specificity — theme authors shouldn't need that. 2. **Code-block colors ignore the active theme entirely.** shiki-highlighter.tsx hardcodes SHIKI_THEME = { dark: 'github-dark-dimmed' }, which follows only the document color-scheme. No theme can change syntax colors in…"
+  },
+  {
+    "id": "gh:107486",
+    "kind": "issue",
+    "where": "GitHub",
+    "title": "[Bug]: Inline code in async-delegation/cron result messages renders fixed dark ink on every dark theme (system-message surface misses the themed code rule)",
+    "url": "https://github.com/NousResearch/hermes-agent/issues/107486",
+    "text": "## Summary Inline code spans inside **system-message surfaces** — the [ASYNC DELEGATION BATCH COMPLETE] envelope and cron job outputs — render with Tailwind Typography's fixed near-black ink on **every dark theme**. Body text is correctly theme-colored; only inline code goes dark-on-dark. Normal assistant prose and thinking blocks in the same transcript render correctly. ## Root cause The themed inline-code rule is scoped to the assistant slot only (apps/desktop/src/styles.css, ~line 1895): css [data-slot='aui_assistant-message-content'] .aui-md :not(pre) > code { background: var(--ui-inline-code-background); color: var(--ui-inline-code-foreground); } SystemMessage (src/components/assistant-ui/thread/system-message.tsx, the asyncResult branch) renders delegation results via MarkdownTextContent under [data-slot='aui_system-message-root'] — so the rule never matches there. The…"
+  },
+  {
+    "id": "gh:73987",
+    "kind": "issue",
+    "where": "GitHub",
+    "title": "Desktop startup ignores display.skin for backend-authored/user skins",
+    "url": "https://github.com/NousResearch/hermes-agent/issues/73987",
+    "text": "## Bug: Desktop startup ignores display.skin for backend-authored/user skins ### Environment - OS: Linux (Ubuntu) - Hermes Desktop + Hermes core installed via hermes update on latest main - Desktop and backend running on same host ### Steps to reproduce 1. Place a user skin at ~/.hermes/skins/customskin.yaml (any non-built-in skin). 2. hermes config set display.skin customskin 3. Close and reopen Hermes Desktop. ### Expected Desktop launches already painted with the customskin palette. ### Actual Desktop launches in the default nous theme. The skin only appears after manually reselecting it in Desktop, or after Desktop reconnects and receives a later skin.changed event. ### Observed pattern - Built-in Desktop-owned skins like cyberpunk persist across restart, because Desktop stores that choice itself in its per-profile localStorage and setTheme() persists it. - User/backend-authored…"
   }
 ]

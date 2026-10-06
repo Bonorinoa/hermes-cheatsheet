@@ -28,6 +28,7 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 
 const ID = 'cheatsheet'
 const $open = atom(false)
+let pluginCtx = null
 
 const HIDDEN_DESKTOP = new Set(['terminal', 'messaging', 'hidden'])
 
@@ -184,6 +185,50 @@ function SectionLabel({ children }) {
   })
 }
 
+function PassageRow(hit, open, onToggle) {
+  const url = hit && hit.url
+  const isHttps = typeof url === 'string' && url.startsWith('https://')
+  const sourceLabel = isHttps
+    ? (() => {
+        const u = new URL(url)
+        return u.host.replace(/^www\./, '') + u.pathname
+      })()
+    : ''
+  return jsxs('div', {
+    className: `border-l-2 py-2 pl-3 ${open ? 'border-(--ui-accent)' : 'border-transparent'}`,
+    children: [
+      jsx('button', {
+        className: 'block w-full text-left',
+        onClick: onToggle,
+        type: 'button',
+        children: jsxs('span', {
+          className: 'flex items-baseline justify-between gap-4',
+          children: [
+            jsx('span', { className: 'text-[0.82rem] text-foreground', children: hit.title || 'Untitled' }),
+            hit.where
+              ? jsx('span', { className: 'shrink-0 text-[0.65rem] text-(--ui-text-tertiary)', children: hit.where })
+              : null
+          ]
+        })
+      }),
+      jsx('p', {
+        className: open
+          ? 'mt-1 text-[0.75rem] leading-relaxed text-(--ui-text-secondary)'
+          : 'mt-1 line-clamp-2 text-[0.75rem] leading-relaxed text-(--ui-text-secondary)',
+        children: hit.excerpt || ''
+      }),
+      open && isHttps
+        ? jsx('button', {
+            className: 'mt-1.5 text-[0.7rem] text-(--ui-accent) hover:underline',
+            onClick: () => pluginCtx.os.openExternal(url),
+            type: 'button',
+            children: sourceLabel
+          })
+        : null
+    ]
+  })
+}
+
 function Sheet() {
   const [tab, setTab] = useState('commands')
   const [query, setQuery] = useState('')
@@ -193,6 +238,10 @@ function Sheet() {
   const [mcp, setMcp] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [facet, setFacet] = useState('all')
+  const [openId, setOpenId] = useState('')
+  const [rows, setRows] = useState(null)
+  const [practicesError, setPracticesError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -232,6 +281,33 @@ function Sheet() {
     }
   }, [])
 
+  async function loadPractices(query, facet) {
+    if (!pluginCtx) return
+    const params = new URLSearchParams({ q: query, facet })
+    setPracticesError('')
+    setRows(null)
+    try {
+      const payload = await pluginCtx.rest(`/practices?${params.toString()}`)
+      if (payload && Array.isArray(payload.hits)) {
+        setRows(payload)
+      } else {
+        setPracticesError('The practices route returned an unexpected shape.')
+        setRows([])
+      }
+    } catch {
+      setPracticesError('Practices needs the backend')
+      setRows([])
+    }
+  }
+
+  useEffect(() => {
+    if (tab !== 'practices') return
+    const timer = setTimeout(() => {
+      loadPractices(query, facet)
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [query, facet, tab])
+
   const groups = useMemo(() => commandGroups(commands), [commands])
   const agents = useMemo(() => pluginRows(plugins), [plugins])
   const servers = useMemo(() => mcpRows(mcp), [mcp])
@@ -251,6 +327,17 @@ function Sheet() {
   const visibleServers = servers.filter(row => matches(query, row.name, row.description, row.status))
   const commandCount = groups.reduce((sum, group) => sum + group.rows.length, 0)
 
+  const facetOptions = [
+    ['all', 'Docs & issues'],
+    ['issue', 'Issues'],
+    ['doc', 'Docs']
+  ]
+
+  const counts = rows && rows.counts ? rows.counts : null
+  const gaps = rows && Array.isArray(rows.gaps) ? rows.gaps : []
+  const prompts = rows && Array.isArray(rows.prompts) ? rows.prompts : []
+  const hits = rows && Array.isArray(rows.hits) ? rows.hits : []
+
   return jsxs(DialogContent, {
     className: 'max-w-3xl',
     bodyClassName: 'max-h-[min(72vh,40rem)] gap-3',
@@ -266,7 +353,7 @@ function Sheet() {
       jsx(SearchField, {
         'aria-label': 'Filter the cheatsheet',
         onChange: setQuery,
-        placeholder: 'Filter commands and plugins',
+        placeholder: tab === 'practices' ? 'A situation, not a chat' : 'Filter commands and plugins',
         value: query
       }),
       jsx(SegmentedControl, {
@@ -278,10 +365,10 @@ function Sheet() {
         ],
         value: tab
       }),
-      loading
+      loading && tab !== 'practices'
         ? jsx('div', { className: 'py-8 text-center text-sm text-(--ui-text-tertiary)', children: 'Loading…' })
         : null,
-      error
+      error && tab !== 'practices'
         ? jsx(EmptyState, { description: error, title: 'Could not read the gateway' })
         : null,
       !loading && !error && tab === 'commands'
@@ -345,9 +432,91 @@ function Sheet() {
           })
         : null,
       tab === 'practices'
-        ? jsx(EmptyState, {
-            title: 'Practices is not wired',
-            description: 'The backend route is not implemented yet.'
+        ? jsxs('div', {
+            children: [
+              jsx('div', {
+                className: 'flex gap-4',
+                children: facetOptions.map(([value, label]) =>
+                  jsx('button', {
+                    className:
+                      (facet === value ? 'text-(--ui-accent)' : 'text-(--ui-text-tertiary) hover:text-foreground') +
+                      ' text-[0.75rem]',
+                    onClick: () => setFacet(value),
+                    type: 'button',
+                    children: label
+                  }, value)
+                )
+              }),
+              rows === null && !practicesError
+                ? jsx('div', { className: 'py-8 text-center text-sm text-(--ui-text-tertiary)', children: "Reading this install's docs…" })
+                : null,
+              practicesError && !rows.length
+                ? jsx(EmptyState, {
+                    title: 'Practices needs the backend',
+                    description: 'Run hermes plugins enable cheatsheet, then enable Cheatsheet in Settings → Plugins, then ⌘K → Reload desktop plugins.'
+                  })
+                : null,
+              rows && !practicesError
+                ? jsxs('div', {
+                    children: [
+                      rows.length === 0 && counts
+                        ? jsx('p', {
+                            className: 'text-[0.7rem] leading-relaxed text-(--ui-text-tertiary)',
+                            children:
+                              `${counts.doc} passages from this install. ${counts.issue} GitHub issues. ` +
+                              gaps.join(' ')
+                          })
+                        : null,
+                      !query && facet !== 'issue' && !hits.length
+                        ? jsxs('div', {
+                            children: [
+                              jsx('div', {
+                                className: 'text-[0.65rem] uppercase tracking-[0.08em] text-(--ui-text-tertiary)',
+                                children: 'Try'
+                              }),
+                              ...prompts.map(prompt =>
+                                jsx('button', {
+                                  className: 'block py-1 text-left text-[0.8rem] text-(--ui-text-secondary) hover:text-foreground',
+                                  onClick: () => setQuery(prompt),
+                                  type: 'button',
+                                  children: prompt
+                                }, prompt)
+                              )
+                            ]
+                          })
+                        : null,
+                      hits.length
+                        ? jsx('div', {
+                            children: hits.map(hit =>
+                              jsx(PassageRow, {
+                                hit,
+                                open: openId === hit.id,
+                                onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
+                              }, hit.id)
+                            )
+                          })
+                        : null,
+                      query && !hits.length
+                        ? jsx(EmptyState, {
+                            title: 'Nothing retrieved',
+                            description: 'No passage matches that situation.'
+                          })
+                        : null,
+                      !query && facet === 'issue' && !hits.length
+                        ? jsx('div', {
+                            children: hits.slice(0, 12).map(hit =>
+                              jsx(PassageRow, {
+                                hit,
+                                open: openId === hit.id,
+                                onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
+                              }, hit.id)
+                            )
+                          })
+                        : null
+                    ]
+                  })
+                : null
+            ]
           })
         : null
     ]
@@ -389,6 +558,7 @@ export default {
   id: ID,
   name: 'Cheatsheet',
   register(ctx) {
+    pluginCtx = ctx
     ctx.register({
       id: 'favicon',
       area: TITLEBAR_AREAS.left,

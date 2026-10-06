@@ -10,7 +10,7 @@ def test_chunks_a_heading_and_skips_see_also(tmp_path: Path):
     page.mkdir(parents=True)
     (page / "skins.md").write_text(
         "# Skins\n\n## See also\n\nshort\n\n## Change skins\n\n"
-        "hermes skin set edits the active skin in place and keeps the background.\n" * 3,
+        + "hermes skin set edits the active skin in place and keeps the background.\n" * 3,
         encoding="utf-8",
     )
     index = build_index(docs, community=[])
