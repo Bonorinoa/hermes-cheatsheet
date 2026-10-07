@@ -1,17 +1,35 @@
+import importlib.util
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from fastapi import APIRouter, Query
 
-from fastapi import APIRouter, Query  # noqa: E402
+_PLUGIN_DIR = Path(__file__).resolve().parent.parent
 
-from cheatsheet_index import GAPS, PROMPTS, docs_root_for_install, get_cached_index, search  # noqa: E402
+
+def _load_index_module():
+    spec = importlib.util.spec_from_file_location(
+        "cheatsheet_index", _PLUGIN_DIR / "cheatsheet_index.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_INDEX_MODULE = _load_index_module()
+GAPS = _INDEX_MODULE.GAPS
+PROMPTS = _INDEX_MODULE.PROMPTS
+docs_root_for_install = _INDEX_MODULE.docs_root_for_install
+get_cached_index = _INDEX_MODULE.get_cached_index
+search = _INDEX_MODULE.search
 
 router = APIRouter()
 _COMMUNITY = json.loads(
-    (Path(__file__).resolve().parent.parent / "community.json").read_text(encoding="utf-8")
+    (_PLUGIN_DIR / "community.json").read_text(encoding="utf-8")
 )
 
 

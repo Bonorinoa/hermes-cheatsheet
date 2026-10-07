@@ -185,7 +185,7 @@ function SectionLabel({ children }) {
   })
 }
 
-function PassageRow(hit, open, onToggle) {
+function PassageRow({ hit, open, onToggle }) {
   const url = hit && hit.url
   const isHttps = typeof url === 'string' && url.startsWith('https://')
   const sourceLabel = isHttps
@@ -215,7 +215,7 @@ function PassageRow(hit, open, onToggle) {
         className: open
           ? 'mt-1 text-[0.75rem] leading-relaxed text-(--ui-text-secondary)'
           : 'mt-1 line-clamp-2 text-[0.75rem] leading-relaxed text-(--ui-text-secondary)',
-        children: hit.excerpt || ''
+        children: hit.text || ''
       }),
       open && isHttps
         ? jsx('button', {
@@ -459,7 +459,7 @@ function Sheet() {
               rows && !practicesError
                 ? jsxs('div', {
                     children: [
-                      rows.length === 0 && counts
+                      !hits.length && counts
                         ? jsx('p', {
                             className: 'text-[0.7rem] leading-relaxed text-(--ui-text-tertiary)',
                             children:
