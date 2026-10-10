@@ -59,3 +59,10 @@ def test_suggest_relevant_query_keeps_hits(docs: Path, monkeypatch: pytest.Monke
     monkeypatch.setattr(plugin_api, "docs_root_for_install", lambda: docs)
     out = asyncio.run(plugin_api.suggest(q="compress a long conversation"))
     assert any(hit["kind"] == "doc" for hit in out["hits"])
+
+
+def test_suggest_filler_words_do_not_raise_the_bar(docs: Path, monkeypatch: pytest.MonkeyPatch):
+    """Filler words must not inflate the coverage bar (a regression guard for F1)."""
+    monkeypatch.setattr(plugin_api, "docs_root_for_install", lambda: docs)
+    out = asyncio.run(plugin_api.suggest(q="please help me compress my conversation"))
+    assert any(hit["kind"] == "doc" for hit in out["hits"])

@@ -30,6 +30,16 @@ GAPS = [
     "Reddit is not in the index.",
     "X posts are not in the index.",
 ]
+# Words that should not raise the /suggest coverage bar (they are never the signal).
+# Kept separate from STOP so /practices scoring is unchanged.
+FILLER = STOP | {
+    "how", "do", "does", "did", "my", "me", "i", "we", "help", "want", "need",
+    "can", "could", "would", "should", "get", "got", "make", "made", "let",
+    "please", "show", "give", "find", "what", "where", "when", "why", "which",
+    "who", "there", "here", "about", "into", "just", "some", "any", "all",
+    "more", "most", "other", "than", "then", "also", "very", "really", "going",
+    "go", "use", "using", "work", "working",
+}
 
 
 def _clean(text: str) -> str:
@@ -156,25 +166,25 @@ def search(
     terms = _tokens(query)
     if not terms:
         return []
-    # min_coverage>0 drops weak matches (a chunk matching only a fraction of the query's
-    # terms). The /suggest path uses it; the /practices tab leaves it at 0 (loose browse).
-    required = 0 if min_coverage <= 0 else max(1, math.ceil(min_coverage * len(terms)))
+    # min_coverage>0 drops weak matches. Coverage counts CONTENT terms only (filler words
+    # like "how"/"my"/"help" must not raise the bar a relevant chunk has to clear). The
+    # /suggest path uses it; the /practices tab leaves it at 0 (loose browse).
+    content = [t for t in terms if t not in FILLER] or terms
+    required = 0 if min_coverage <= 0 else max(1, math.ceil(min_coverage * len(content)))
     scored = []
     for chunk, tf, length in index.docs:
         if facet in ("doc", "issue") and chunk["kind"] != facet:
             continue
         score = 0.0
-        matched = 0
         for term in terms:
             freq = tf.get(term, 0)
             if not freq:
                 continue
-            matched += 1
             seen = index.df.get(term, 0)
             idf = math.log(1 + (index.n - seen + 0.5) / (seen + 0.5))
             denom = freq + 1.2 * (1 - 0.75 + 0.75 * (length / index.avg))
             score += (idf * (freq * 2.2)) / denom
-        if required and matched < required:
+        if required and sum(1 for term in content if tf.get(term, 0)) < required:
             continue
         title = chunk["title"].lower()
         for term in terms:

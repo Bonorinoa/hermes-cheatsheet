@@ -112,7 +112,10 @@ def _matched_keys(needle: str, keys: list[str]) -> list[str]:
 
 
 def match(query: str) -> dict[str, list[str]]:
-    """Rank intents by their longest matched phrase; ties broken by match count."""
+    """Rank intents by their longest matched phrase; ties broken by match count.
+
+    Up to five intents contribute, so a keyword-salad query cannot flood the union.
+    """
     needle = (query or "").strip().lower()
     out: dict[str, list[str]] = {"cmds": []}
     if len(needle) < 4:
@@ -123,7 +126,7 @@ def match(query: str) -> dict[str, list[str]]:
         if matched:
             scored.append((max(len(key) for key in matched), len(matched), intent))
     scored.sort(key=lambda row: (-row[0], -row[1]))
-    for _, _, intent in scored:
+    for _, _, intent in scored[:5]:
         for name in intent["cmds"]:
             if name not in out["cmds"]:
                 out["cmds"].append(name)
