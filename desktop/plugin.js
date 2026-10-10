@@ -229,6 +229,59 @@ function PassageRow({ hit, open, onToggle }) {
   })
 }
 
+function Chips({ chips, onPick }) {
+  if (!chips.length) return null
+  return jsxs('section', {
+    children: [
+      jsx(SectionLabel, { children: 'Common things people want' }),
+      jsx('div', {
+        className: 'flex flex-wrap gap-1.5',
+        children: chips.map(chip =>
+          jsx(
+            'button',
+            {
+              className:
+                'rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-1 text-[0.75rem] text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-foreground',
+              onClick: () => onPick(chip.q),
+              type: 'button',
+              children: chip.label
+            },
+            chip.q
+          )
+        )
+      })
+    ]
+  })
+}
+
+function Suggested({ cmds, hits, openId, onToggle }) {
+  return jsxs('section', {
+    className: 'rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) p-3',
+    children: [
+      jsx('div', {
+        className: 'text-[0.65rem] font-medium uppercase tracking-[0.08em] text-(--ui-accent)',
+        children: 'Suggested'
+      }),
+      jsx('p', {
+        className: 'mt-1 text-[0.7rem] leading-relaxed text-(--ui-text-tertiary)',
+        children:
+          "Curated shortcuts — each is a real command or a cited passage from this install's docs. Nothing is generated."
+      }),
+      cmds.length
+        ? jsx('div', { className: 'mt-1', children: cmds.map(row => jsx(CommandRow, row, `s-${row.name}`)) })
+        : null,
+      hits.length
+        ? jsx('div', {
+            className: 'mt-1',
+            children: hits.map(hit =>
+              jsx(PassageRow, { hit, open: openId === hit.id, onToggle: () => onToggle(hit.id) }, `s-${hit.id}`)
+            )
+          })
+        : null
+    ]
+  })
+}
+
 function Sheet() {
   const [tab, setTab] = useState('commands')
   const [query, setQuery] = useState('')
@@ -242,6 +295,7 @@ function Sheet() {
   const [openId, setOpenId] = useState('')
   const [rows, setRows] = useState(null)
   const [practicesError, setPracticesError] = useState('')
+  const [suggest, setSuggest] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -308,7 +362,34 @@ function Sheet() {
     return () => clearTimeout(timer)
   }, [query, facet, tab])
 
+  async function loadSuggest(phrase) {
+    if (!pluginCtx) return
+    try {
+      const payload = await pluginCtx.rest(`/suggest?q=${encodeURIComponent(phrase)}`)
+      if (payload && Array.isArray(payload.cmds)) {
+        setSuggest(payload)
+      } else {
+        setSuggest({ chips: [], cmds: [], hits: [] })
+      }
+    } catch {
+      setSuggest({ chips: [], cmds: [], hits: [] })
+    }
+  }
+
+  useEffect(() => {
+    if (tab !== 'commands') return
+    const timer = setTimeout(() => {
+      loadSuggest(query)
+    }, 180)
+    return () => clearTimeout(timer)
+  }, [query, tab])
+
   const groups = useMemo(() => commandGroups(commands), [commands])
+  const flat = useMemo(() => {
+    const map = {}
+    for (const group of groups) for (const row of group.rows) map[row.name] = row.description
+    return map
+  }, [groups])
   const agents = useMemo(() => pluginRows(plugins), [plugins])
   const servers = useMemo(() => mcpRows(mcp), [mcp])
 
@@ -338,6 +419,18 @@ function Sheet() {
   const prompts = rows && Array.isArray(rows.prompts) ? rows.prompts : []
   const hits = rows && Array.isArray(rows.hits) ? rows.hits : []
 
+  const trimmed = query.trim()
+  const chips = suggest && Array.isArray(suggest.chips) ? suggest.chips : []
+  const suggestedRows = (suggest && Array.isArray(suggest.cmds) ? suggest.cmds : [])
+    .filter(name => Object.prototype.hasOwnProperty.call(flat, name))
+    .map(name => ({ name, description: flat[name] }))
+  const suggestedHits = suggest && Array.isArray(suggest.hits) ? suggest.hits : []
+  const hasSuggested = suggestedRows.length > 0 || suggestedHits.length > 0
+  const shownNames = new Set(suggestedRows.map(row => row.name))
+  const listGroups = visibleGroups
+    .map(group => ({ ...group, rows: group.rows.filter(row => !(trimmed && shownNames.has(row.name))) }))
+    .filter(group => group.rows.length)
+
   return jsxs(DialogContent, {
     className: 'max-w-3xl',
     bodyClassName: 'max-h-[min(72vh,40rem)] gap-3',
@@ -346,14 +439,18 @@ function Sheet() {
         children: [
           jsx(DialogTitle, { children: 'Cheatsheet' }),
           jsx(DialogDescription, {
-            children: 'Commands and plugins are live from this gateway. Practices retrieves cited passages — it does not invent advice.'
+            children:
+              "Describe what you want to do. Suggestions point to a real command or a cited passage from this install's docs — nothing is generated, nothing invented."
           })
         ]
       }),
       jsx(SearchField, {
-        'aria-label': 'Filter the cheatsheet',
+        'aria-label': 'Describe what you want to do',
         onChange: setQuery,
-        placeholder: tab === 'practices' ? 'A situation, not a chat' : 'Filter commands and plugins',
+        placeholder:
+          tab === 'practices'
+            ? 'A situation, not a chat'
+            : 'What do you want to do?  e.g. ask a question without interrupting the model',
         value: query
       }),
       jsx(SegmentedControl, {
@@ -372,21 +469,46 @@ function Sheet() {
         ? jsx(EmptyState, { description: error, title: 'Could not read the gateway' })
         : null,
       !loading && !error && tab === 'commands'
-        ? visibleGroups.length
-          ? jsx('div', {
-              children: visibleGroups.map(group =>
-                jsxs('section', {
-                  children: [
-                    jsx(SectionLabel, { children: group.name }),
-                    ...group.rows.map(row => jsx(CommandRow, row, row.name))
-                  ]
-                }, group.name)
-              )
-            })
-          : jsx(EmptyState, {
-              description: query ? 'Nothing matches that filter.' : 'The catalog came back empty.',
-              title: 'No commands'
-            })
+        ? jsxs('div', {
+            children: [
+              !trimmed ? jsx(Chips, { chips, onPick: setQuery }) : null,
+              trimmed && hasSuggested
+                ? jsx(Suggested, {
+                    cmds: suggestedRows,
+                    hits: suggestedHits,
+                    openId,
+                    onToggle: id => setOpenId(openId === id ? '' : id)
+                  })
+                : null,
+              listGroups.length
+                ? jsxs('div', {
+                    children: [
+                      jsx(SectionLabel, {
+                        children: trimmed ? (hasSuggested ? 'Other commands' : 'Matching commands') : 'All commands'
+                      }),
+                      ...listGroups.map(group =>
+                        jsxs(
+                          'section',
+                          {
+                            children: [
+                              jsx(SectionLabel, { children: group.name }),
+                              ...group.rows.map(row => jsx(CommandRow, row, row.name))
+                            ]
+                          },
+                          group.name
+                        )
+                      )
+                    ]
+                  })
+                : null,
+              !listGroups.length && !hasSuggested
+                ? jsx(EmptyState, {
+                    description: trimmed ? 'Nothing matches that filter.' : 'The catalog came back empty.',
+                    title: 'No commands'
+                  })
+                : null
+            ]
+          })
         : null,
       !loading && !error && tab === 'plugins'
         ? jsxs('div', {
@@ -437,14 +559,18 @@ function Sheet() {
               jsx('div', {
                 className: 'flex gap-4',
                 children: facetOptions.map(([value, label]) =>
-                  jsx('button', {
-                    className:
-                      (facet === value ? 'text-(--ui-accent)' : 'text-(--ui-text-tertiary) hover:text-foreground') +
-                      ' text-[0.75rem]',
-                    onClick: () => setFacet(value),
-                    type: 'button',
-                    children: label
-                  }, value)
+                  jsx(
+                    'button',
+                    {
+                      className:
+                        (facet === value ? 'text-(--ui-accent)' : 'text-(--ui-text-tertiary) hover:text-foreground') +
+                        ' text-[0.75rem]',
+                      onClick: () => setFacet(value),
+                      type: 'button',
+                      children: label
+                    },
+                    value
+                  )
                 )
               }),
               rows === null && !practicesError
@@ -475,12 +601,16 @@ function Sheet() {
                                 children: 'Try'
                               }),
                               ...prompts.map(prompt =>
-                                jsx('button', {
-                                  className: 'block py-1 text-left text-[0.8rem] text-(--ui-text-secondary) hover:text-foreground',
-                                  onClick: () => setQuery(prompt),
-                                  type: 'button',
-                                  children: prompt
-                                }, prompt)
+                                jsx(
+                                  'button',
+                                  {
+                                    className: 'block py-1 text-left text-[0.8rem] text-(--ui-text-secondary) hover:text-foreground',
+                                    onClick: () => setQuery(prompt),
+                                    type: 'button',
+                                    children: prompt
+                                  },
+                                  prompt
+                                )
                               )
                             ]
                           })
@@ -488,11 +618,15 @@ function Sheet() {
                       hits.length
                         ? jsx('div', {
                             children: hits.map(hit =>
-                              jsx(PassageRow, {
-                                hit,
-                                open: openId === hit.id,
-                                onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
-                              }, hit.id)
+                              jsx(
+                                PassageRow,
+                                {
+                                  hit,
+                                  open: openId === hit.id,
+                                  onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
+                                },
+                                hit.id
+                              )
                             )
                           })
                         : null,
@@ -505,11 +639,15 @@ function Sheet() {
                       !query && facet === 'issue' && !hits.length
                         ? jsx('div', {
                             children: hits.slice(0, 12).map(hit =>
-                              jsx(PassageRow, {
-                                hit,
-                                open: openId === hit.id,
-                                onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
-                              }, hit.id)
+                              jsx(
+                                PassageRow,
+                                {
+                                  hit,
+                                  open: openId === hit.id,
+                                  onToggle: () => setOpenId(openId === hit.id ? '' : hit.id)
+                                },
+                                hit.id
+                              )
                             )
                           })
                         : null

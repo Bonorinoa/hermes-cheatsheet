@@ -1,4 +1,4 @@
 name: cheatsheet
-version: "0.1.0"
-description: "Title-bar cheatsheet. Commands and plugins are live from this gateway. Practices retrieves cited passages from this Hermes install's docs."
+version: "0.2.0"
+description: "Title-bar cheatsheet. Describe what you want to do and it points to a real command or a cited passage. Commands and plugins are live from this gateway; Practices retrieves cited passages from this Hermes install's docs."
 author: Bonorinoa

@@ -1,7 +1,21 @@
 # Hermes Cheatsheet
 
-Title-bar cheatsheet for Hermes Desktop. Commands and plugins are live from this
-gateway. Practices retrieves cited passages from this Hermes install's docs.
+Title-bar cheatsheet for Hermes Desktop. Describe what you want to do and it
+points to a real command or a cited passage. Commands and plugins are live from
+this gateway. Practices retrieves cited passages from this Hermes install's docs.
+
+## Intent search
+
+Type a situation ("ask a question without interrupting the model") and the
+Commands tab shows a **Suggested** block: a curated map of phrases to command
+ids, plus cited passages retrieved from the docs index on your own words.
+Nothing is generated — every suggestion is either a command that exists in this
+gateway's `commands.catalog` or a passage copied from this install's docs.
+
+The map is data (`cheatsheet_intents.py`) served by the plugin's local
+`/suggest` route. Suggested command ids are validated against the live catalog
+before render; unknown ids are dropped. If the backend half is disabled, the tab
+falls back to plain filtering — no fake suggestions.
 
 ## What this plugin reads
 

@@ -1,7 +1,7 @@
 {
   "name": "cheatsheet",
   "label": "Cheatsheet",
-  "description": "Cited practices search over this install's docs.",
-  "version": "0.1.0",
+  "description": "Intent search plus a cited practices index over this install's docs.",
+  "version": "0.2.0",
   "api": "plugin_api.py"
 }
