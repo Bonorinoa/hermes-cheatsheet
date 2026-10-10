@@ -18,6 +18,12 @@ def docs(tmp_path: Path) -> Path:
         + "compress the conversation when it is getting too long. " * 12,
         encoding="utf-8",
     )
+    # A doc that contains one of the gibberish query's tokens, so the precision test
+    # below is meaningful: without the coverage floor this doc WOULD be returned.
+    (page / "widgets.md").write_text(
+        "# Widgets\n\n## Rendering widgets\n\n" + "the widget renders a widget in the sidebar. " * 12,
+        encoding="utf-8",
+    )
     return tmp_path / "docs"
 
 
@@ -38,7 +44,18 @@ def test_suggest_empty_query_is_chips_only(docs: Path, monkeypatch: pytest.Monke
 
 
 def test_suggest_unknown_query_is_empty(docs: Path, monkeypatch: pytest.MonkeyPatch):
+    """The coverage floor drops a chunk matching only one of three query terms.
+
+    The fixture DOES contain "widget", so this fails if the floor is removed.
+    """
     monkeypatch.setattr(plugin_api, "docs_root_for_install", lambda: docs)
     out = asyncio.run(plugin_api.suggest(q="xyzzy frobnicate the widget"))
     assert out["cmds"] == []
     assert out["hits"] == []
+
+
+def test_suggest_relevant_query_keeps_hits(docs: Path, monkeypatch: pytest.MonkeyPatch):
+    """The floor must not suppress a query that genuinely matches."""
+    monkeypatch.setattr(plugin_api, "docs_root_for_install", lambda: docs)
+    out = asyncio.run(plugin_api.suggest(q="compress a long conversation"))
+    assert any(hit["kind"] == "doc" for hit in out["hits"])

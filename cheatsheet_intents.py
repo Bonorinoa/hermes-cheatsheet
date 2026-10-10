@@ -9,10 +9,14 @@ Every id here MUST be a command the *desktop* surface advertises. The catalog
 hides commands whose ``desktop`` meta is terminal/messaging/hidden, so an id that
 is real but hidden (``cron``, ``model``, ``clear``) can never render. The guard is
 ``tests/test_intents.py`` against ``tests/fixtures/desktop_commands.json``.
+
+Keys are matched on word boundaries, not raw substrings, so "stop" does not fire
+on "unstoppable" and "plan" does not fire on "explain".
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 # phrase -> command ids. Every id is validated against the live catalog before render.
@@ -32,9 +36,9 @@ INTENTS: list[dict[str, Any]] = [
         "keys": ["in the background", "background", "without blocking", "long job", "keep working", "asynchronously"],
         "cmds": ["bg"],
     },
-    {"keys": ["add a skill", "reusable", "skill library", "automate a prompt"], "cmds": ["skills"]},
+    {"keys": ["add a skill", "reusable", "skill library", "automate a prompt", "skills", "skill"], "cmds": ["skills"]},
     {
-        "keys": ["out of context", "too long", "compress", "compact", "save tokens", "context limit", "context window"],
+        "keys": ["out of context", "too long", "compress", "compact", "save tokens", "context limit", "context window", "context"],
         "cmds": ["compress", "context"],
     },
     {"keys": ["remember", "memory", "note that", "keep in mind"], "cmds": ["memory"]},
@@ -46,16 +50,17 @@ INTENTS: list[dict[str, Any]] = [
     {"keys": ["undo", "revert", "take that back"], "cmds": ["undo"]},
     {"keys": ["export", "save the conversation", "download transcript"], "cmds": ["export"]},
     {"keys": ["rename this", "name this session"], "cmds": ["title"]},
-    {"keys": ["switch profile", "different profile", "change profile", "switch workspace"], "cmds": ["profile"]},
-    {"keys": ["list sessions", "past conversations", "my sessions", "session history"], "cmds": ["sessions"]},
-    {"keys": ["make a plan", "plan this", "plan mode", "draft a plan"], "cmds": ["plan"]},
-    {"keys": ["change personality", "agent personality", "different personality"], "cmds": ["personality"]},
-    {"keys": ["wake word", "hey hermes", "always listening"], "cmds": ["wake"]},
-    {"keys": ["token usage", "how much have i used", "cost so far", "usage report"], "cmds": ["usage"]},
-    {"keys": ["what tools", "list tools", "available tools"], "cmds": ["tools"]},
+    {"keys": ["switch profile", "different profile", "change profile", "switch workspace", "profile", "profiles"], "cmds": ["profile"]},
+    {"keys": ["list sessions", "past conversations", "my sessions", "session history", "sessions"], "cmds": ["sessions"]},
+    {"keys": ["make a plan", "plan this", "plan mode", "draft a plan", "plan", "plans"], "cmds": ["plan"]},
+    {"keys": ["change personality", "agent personality", "different personality", "personality"], "cmds": ["personality"]},
+    {"keys": ["wake word", "hey hermes", "always listening", "wake"], "cmds": ["wake"]},
+    {"keys": ["token usage", "how much have i used", "cost so far", "usage report", "usage"], "cmds": ["usage"]},
+    {"keys": ["what tools", "list tools", "available tools", "tool", "tools"], "cmds": ["tools"]},
 ]
 
-# Opening prompts. `q` is the phrase a click types into the field.
+# Opening prompts. `q` is the phrase a click types into the field. Some are doc-only
+# (e.g. "schedule a recurring job" — cron is desktop-hidden, so it yields passages).
 CHIPS: list[dict[str, str]] = [
     {"label": "Ask without interrupting the model", "q": "ask a question without interrupting the model"},
     {"label": "Run something in the background", "q": "run this in the background"},
@@ -80,14 +85,30 @@ EVAL: list[dict[str, Any]] = [
     {"q": "turn on voice input", "cmds": ["voice"]},
     {"q": "resume my previous session", "cmds": ["resume"]},
     {"q": "make it stop", "cmds": ["stop"]},
-    {"q": "stop", "cmds": ["stop"]},
     {"q": "undo that", "cmds": ["undo"]},
     {"q": "rename this", "cmds": ["title"]},
     {"q": "switch profile", "cmds": ["profile"]},
     {"q": "how much have I used", "cmds": ["usage"]},
     {"q": "what tools do I have", "cmds": ["tools"]},
+    {"q": "stop", "cmds": ["stop"]},
+    {"q": "plan", "cmds": ["plan"]},
+    {"q": "profile", "cmds": ["profile"]},
+    {"q": "usage", "cmds": ["usage"]},
+    {"q": "tools", "cmds": ["tools"]},
+    {"q": "sessions", "cmds": ["sessions"]},
+    {"q": "personality", "cmds": ["personality"]},
+    {"q": "wake", "cmds": ["wake"]},
+    {"q": "skills", "cmds": ["skills"]},
     {"q": "xyzzy frobnicate the widget", "none": True},
 ]
+
+
+def _matched_keys(needle: str, keys: list[str]) -> list[str]:
+    hits = []
+    for key in keys:
+        if re.search(r"(?<![a-z0-9])" + re.escape(key) + r"(?![a-z0-9])", needle):
+            hits.append(key)
+    return hits
 
 
 def match(query: str) -> dict[str, list[str]]:
@@ -98,11 +119,11 @@ def match(query: str) -> dict[str, list[str]]:
         return out
     scored = []
     for intent in INTENTS:
-        matched = [key for key in intent["keys"] if key in needle]
+        matched = _matched_keys(needle, intent["keys"])
         if matched:
             scored.append((max(len(key) for key in matched), len(matched), intent))
     scored.sort(key=lambda row: (-row[0], -row[1]))
-    for _, _, intent in scored[:3]:
+    for _, _, intent in scored:
         for name in intent["cmds"]:
             if name not in out["cmds"]:
                 out["cmds"].append(name)

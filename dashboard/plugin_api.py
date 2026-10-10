@@ -87,7 +87,7 @@ async def practices(q: str = Query(default=""), facet: str = Query(default="all"
 async def suggest(q: str = Query(default="")):
     index, _root = _index()
     phrase = (q or "").strip()
-    hits = search(index, phrase, facet="all", limit=3) if phrase else []
+    hits = search(index, phrase, facet="all", limit=3, min_coverage=0.5) if phrase else []
     return {
         "query": q,
         "chips": list(CHIPS),

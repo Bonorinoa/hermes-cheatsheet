@@ -150,23 +150,32 @@ def build_index(docs_root: Path, community: list[dict]) -> Index:
     return Index(chunks=chunks, docs=docs, df=df, avg=avg, n=n)
 
 
-def search(index: Index, query: str, facet: str = "all", limit: int = 8) -> list[dict]:
+def search(
+    index: Index, query: str, facet: str = "all", limit: int = 8, min_coverage: float = 0.0
+) -> list[dict]:
     terms = _tokens(query)
     if not terms:
         return []
+    # min_coverage>0 drops weak matches (a chunk matching only a fraction of the query's
+    # terms). The /suggest path uses it; the /practices tab leaves it at 0 (loose browse).
+    required = 0 if min_coverage <= 0 else max(1, math.ceil(min_coverage * len(terms)))
     scored = []
     for chunk, tf, length in index.docs:
         if facet in ("doc", "issue") and chunk["kind"] != facet:
             continue
         score = 0.0
+        matched = 0
         for term in terms:
             freq = tf.get(term, 0)
             if not freq:
                 continue
+            matched += 1
             seen = index.df.get(term, 0)
             idf = math.log(1 + (index.n - seen + 0.5) / (seen + 0.5))
             denom = freq + 1.2 * (1 - 0.75 + 0.75 * (length / index.avg))
             score += (idf * (freq * 2.2)) / denom
+        if required and matched < required:
+            continue
         title = chunk["title"].lower()
         for term in terms:
             if term in title:

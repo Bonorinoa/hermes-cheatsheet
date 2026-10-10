@@ -46,6 +46,7 @@ function commandGroups(catalog) {
   const meta = (catalog && catalog.commands) || {}
   const categories = Array.isArray(catalog && catalog.categories) ? catalog.categories : []
   const fromCategories = categories
+    .filter(category => category && Array.isArray(category.pairs))
     .map(category => ({
       name: category.name || 'Other',
       rows: (category.pairs || [])

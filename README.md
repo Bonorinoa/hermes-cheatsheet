@@ -40,6 +40,6 @@ standalone plugin.
 ## Development
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install pytest
+python3 -m venv .venv && .venv/bin/pip install pytest fastapi
 .venv/bin/python -m pytest
 ```
