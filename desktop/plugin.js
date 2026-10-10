@@ -50,7 +50,7 @@ function commandGroups(catalog) {
       name: category.name || 'Other',
       rows: (category.pairs || [])
         .filter(pair => pair && pair[0] && keepCommand(pair[0], meta))
-        .map(pair => ({ name: pair[0], description: pair[1] || '' }))
+        .map(pair => ({ name: String(pair[0]).replace(/^\//, ''), description: pair[1] || '' }))
     }))
     .filter(category => category.rows.length)
 
@@ -61,7 +61,7 @@ function commandGroups(catalog) {
   const pairs = Array.isArray(catalog && catalog.pairs) ? catalog.pairs : []
   const rows = pairs
     .filter(pair => pair && pair[0] && keepCommand(pair[0], meta))
-    .map(pair => ({ name: pair[0], description: pair[1] || '' }))
+    .map(pair => ({ name: String(pair[0]).replace(/^\//, ''), description: pair[1] || '' }))
 
   return rows.length ? [{ name: 'Commands', rows }] : []
 }
@@ -188,12 +188,15 @@ function SectionLabel({ children }) {
 function PassageRow({ hit, open, onToggle }) {
   const url = hit && hit.url
   const isHttps = typeof url === 'string' && url.startsWith('https://')
-  const sourceLabel = isHttps
-    ? (() => {
-        const u = new URL(url)
-        return u.host.replace(/^www\./, '') + u.pathname
-      })()
-    : ''
+  let sourceLabel = ''
+  if (isHttps) {
+    try {
+      const u = new URL(url)
+      sourceLabel = u.host.replace(/^www\./, '') + u.pathname
+    } catch {
+      sourceLabel = ''
+    }
+  }
   return jsxs('div', {
     className: `border-l-2 py-2 pl-3 ${open ? 'border-(--ui-accent)' : 'border-transparent'}`,
     children: [
