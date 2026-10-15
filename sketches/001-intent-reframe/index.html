@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cheatsheet — intent reframe</title>
+<style>
+  :root{
+    color-scheme: light;
+    --theme-foreground:#17171a; --theme-primary:#0053fd; --theme-midground:#0053fd; --theme-warm:#cf806d;
+    --theme-background-seed:#f8faff; --theme-sidebar-seed:#f3f7ff; --theme-card-seed:#ffffff; --theme-elevated-seed:#ffffff;
+    --theme-neutral-chrome:#f3f3f3; --theme-neutral-card:#fcfcfc;
+    --theme-mix-chrome:92%; --theme-mix-elevated:28%;
+    --theme-fill-tertiary-accent-mix:8%; --theme-fill-quinary-accent-mix:3%;
+    --theme-stroke-tertiary-accent-mix:10%; --theme-stroke-quaternary-accent-mix:6%;
+    --theme-control-hover-accent-mix:6%; --theme-row-hover-accent-mix:4%;
+
+    --ui-base:var(--theme-foreground); --ui-accent:var(--theme-midground);
+    --ui-green:#1f8a65; --ui-purple:#9e94d5; --ui-yellow:#c08532; --ui-cyan:#4c7f8c; --ui-red:#cf2d56; --ui-orange:#db704b;
+    --ui-bg-chrome:color-mix(in srgb, var(--theme-background-seed) var(--theme-mix-chrome), var(--theme-neutral-chrome));
+    --ui-bg-elevated:color-mix(in srgb, var(--theme-elevated-seed) var(--theme-mix-elevated), var(--theme-neutral-card));
+    --ui-bg-quinary:color-mix(in srgb, var(--ui-accent) var(--theme-fill-quinary-accent-mix), color-mix(in srgb, var(--ui-base) 3%, transparent));
+    --ui-bg-tertiary:color-mix(in srgb, var(--ui-accent) var(--theme-fill-tertiary-accent-mix), color-mix(in srgb, var(--ui-base) 5%, transparent));
+    --ui-text-primary:color-mix(in srgb, var(--ui-base) 94%, transparent);
+    --ui-text-secondary:color-mix(in srgb, var(--ui-base) 74%, transparent);
+    --ui-text-tertiary:color-mix(in srgb, var(--ui-base) 54%, transparent);
+    --ui-text-quaternary:color-mix(in srgb, var(--ui-base) 36%, transparent);
+    --ui-stroke-tertiary:color-mix(in srgb, var(--ui-accent) var(--theme-stroke-tertiary-accent-mix), color-mix(in srgb, var(--ui-base) 5%, transparent));
+    --ui-stroke-quaternary:color-mix(in srgb, var(--ui-accent) var(--theme-stroke-quaternary-accent-mix), color-mix(in srgb, var(--ui-base) 3%, transparent));
+    --ui-control-hover:color-mix(in srgb, var(--ui-accent) var(--theme-control-hover-accent-mix), color-mix(in srgb, var(--ui-base) 4%, transparent));
+    --ui-row-hover:color-mix(in srgb, var(--ui-accent) var(--theme-row-hover-accent-mix), color-mix(in srgb, var(--ui-base) 3%, transparent));
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; background:#eceef2; color:var(--ui-text-primary); padding:28px 28px 60px;
+  }
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;font-size:.85em}
+
+  .pagetop{max-width:1180px;margin:0 auto 20px}
+  .pagetop h1{font-size:1.15rem;font-weight:700;letter-spacing:-.03em;line-height:1.25;color:var(--ui-text-primary)}
+  .pagetop h1 span{color:var(--ui-text-tertiary);font-weight:400;font-size:.95em}
+  .pagetop p{margin-top:8px;font-size:.78rem;color:var(--ui-text-secondary);max-width:78ch;line-height:1.55;letter-spacing:-.01em}
+  .switcher{display:inline-flex;margin-top:16px;border:1px solid var(--ui-stroke-tertiary);border-radius:10px;background:#fff;padding:4px;gap:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .switcher button{font:inherit;font-size:.72rem;padding:7px 14px;border:0;border-radius:7px;background:transparent;color:var(--ui-text-secondary);cursor:pointer;letter-spacing:-.01em;transition:all .12s ease}
+  .switcher button[aria-pressed="true"]{background:var(--ui-accent);color:#fff;box-shadow:0 1px 2px rgba(0,83,253,.18)}
+  .hint{margin-top:12px;font-size:.72rem;color:var(--ui-text-quaternary);line-height:1.5}
+  .kbd{font:inherit;font-size:.66rem;border:1px solid var(--ui-stroke-tertiary);border-radius:5px;padding:2px 6px;background:#fff;color:var(--ui-text-tertiary);letter-spacing:.02em}
+  .evalline{margin-top:10px;font-size:.72rem}
+  .evalline code{background:#fff;border:1px solid var(--ui-stroke-tertiary);border-radius:5px;padding:2px 6px}
+
+  .stage{position:relative;max-width:1180px;margin:0 auto;height:660px;border-radius:14px;overflow:hidden;
+    border:1px solid rgba(0,0,0,.08);box-shadow:0 24px 70px rgba(15,25,60,.14);background:var(--ui-bg-chrome)}
+  .titlebar{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--ui-stroke-quaternary);background:var(--ui-bg-chrome)}
+  .traffic{display:flex;gap:8px;margin-right:8px}
+  .traffic i{width:12px;height:12px;border-radius:50%;display:block}
+  .mark{display:inline-flex;align-items:center;justify-content:center;width:30px;height:26px;border-radius:6px;color:var(--ui-accent)}
+  .mark svg{width:15px;height:15px}
+  .titlebar .filetitle{font-size:.76rem;color:var(--ui-text-tertiary);letter-spacing:-.01em}
+  .appbody{padding:24px 32px;display:flex;flex-direction:column;gap:16px}
+  .bubble{max-width:62%;border-radius:12px;padding:12px 16px;font-size:.82rem;line-height:1.55;letter-spacing:-.01em}
+  .bubble.user{align-self:flex-end;background:color-mix(in srgb, var(--ui-accent) 9%, #fff);color:var(--ui-text-primary)}
+  .bubble.bot{align-self:flex-start;background:#fff;border:1px solid var(--ui-stroke-quaternary);color:var(--ui-text-secondary);box-shadow:0 2px 6px rgba(0,0,0,.03)}
+  .scrim{position:absolute;inset:0;background:color-mix(in srgb,#0b1226 30%,transparent);backdrop-filter:blur(1.5px)}
+
+  .dialog{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:min(760px,calc(100% - 60px));
+    background:var(--ui-bg-elevated);border:1px solid var(--ui-stroke-tertiary);border-radius:14px;
+    box-shadow:0 32px 90px rgba(15,25,60,.32);display:flex;flex-direction:column;max-height:560px;overflow:hidden}
+  .dlg-head{padding:20px 24px 14px;display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+  .dlg-head .row{display:flex;align-items:baseline;gap:10px}
+  .dlg-head h2{font-size:1.2rem;font-weight:700;letter-spacing:-.035em;color:var(--ui-text-primary)}
+  .tag{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ui-accent);border:1px solid color-mix(in srgb,var(--ui-accent) 30%,transparent);border-radius:20px;padding:3px 8px;font-weight:600}
+  .dlg-head p{font-size:.8rem;color:var(--ui-text-secondary);line-height:1.5;max-width:66ch;letter-spacing:-.01em}
+  .dlg-body{padding:0 24px 20px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+
+  .search{position:relative}
+  .search input{width:100%;font:inherit;font-size:.82rem;padding:12px 14px 12px 40px;border-radius:10px;
+    border:1.5px solid var(--ui-stroke-tertiary);background:var(--ui-bg-quinary);color:var(--ui-text-primary);
+    letter-spacing:-.01em;transition:border-color .15s ease, box-shadow .15s ease}
+  .search input:focus{outline:none;border-color:var(--ui-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 22%,transparent)}
+  .search .lens{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ui-text-quaternary);display:flex;align-items:center;justify-content:center}
+  .search input::placeholder{color:var(--ui-text-quaternary);letter-spacing:-.01em}
+
+  .tabs{display:inline-flex;gap:3px;border:1px solid var(--ui-stroke-tertiary);border-radius:10px;padding:4px;background:var(--ui-bg-quinary);align-self:flex-start;box-shadow:inset 0 1px 2px rgba(0,0,0,.02)}
+  .tabs button{font:inherit;font-size:.73rem;padding:7px 14px;border:0;border-radius:8px;background:transparent;color:var(--ui-text-secondary);cursor:pointer;white-space:nowrap;letter-spacing:-.01em;transition:all .12s ease}
+  .tabs button[aria-pressed="true"]{background:#fff;color:var(--ui-text-primary);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:600}
+
+  .facets{display:inline-flex;gap:6px;margin-top:-4px}
+  .facets button{font:inherit;font-size:.68rem;padding:3px 9px;border:1px solid var(--ui-stroke-tertiary);border-radius:20px;background:#fff;color:var(--ui-text-tertiary);cursor:pointer}
+  .facets button[aria-pressed="true"]{border-color:var(--ui-accent);color:var(--ui-accent);font-weight:600}
+
+  .sec-label{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ui-text-quaternary);padding-top:4px;margin-bottom:8px;font-weight:600}
+  .sec-label b{color:var(--ui-accent);font-weight:700}
+  .sec-sub{font-size:.7rem;color:var(--ui-text-quaternary);margin-top:4px;line-height:1.45;letter-spacing:-.01em}
+
+  .row-item{display:flex;align-items:flex-start;gap:12px;padding:11px 3px;border-bottom:1px solid var(--ui-stroke-quaternary);transition:background .1s ease}
+  .row-item:last-child{border-bottom:0}
+  .row-item:hover{background:var(--ui-row-hover);border-radius:6px;margin:0 -4px;padding-left:7px;padding-right:7px}
+  .row-item .cmd{flex:0 0 auto;font-size:.72rem;color:var(--ui-accent);font-family:ui-monospace,monospace;padding-top:2px;letter-spacing:-.02em;font-weight:600}
+  .row-item .txt{min-width:0;flex:1}
+  .row-item .txt .d{font-size:.78rem;color:var(--ui-text-primary);line-height:1.45;letter-spacing:-.01em}
+  .row-item .txt .ex{margin-top:3px;font-size:.72rem;color:var(--ui-text-secondary);line-height:1.5;letter-spacing:-.01em}
+  .row-item .txt .src{display:inline-flex;align-items:center;gap:5px;margin-top:5px;font-size:.68rem;color:var(--ui-text-quaternary);letter-spacing:-.01em}
+  .row-item .txt .src a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--ui-stroke-tertiary)}
+  .row-item .txt .src a:hover{color:var(--ui-accent)}
+  .copy{flex:0 0 auto;border:1px solid var(--ui-stroke-tertiary);background:#fff;border-radius:7px;font:inherit;font-size:.68rem;color:var(--ui-text-secondary);padding:5px 10px;cursor:pointer;min-width:56px;letter-spacing:-.01em;transition:all .12s ease}
+  .copy:hover{background:var(--ui-control-hover);border-color:var(--ui-stroke-tertiary)}
+  .copy.done{color:var(--ui-green);border-color:color-mix(in srgb,var(--ui-green) 40%,transparent)}
+
+  .suggest{background:color-mix(in srgb,var(--ui-accent) 4%,#fff);border:1px solid color-mix(in srgb,var(--ui-accent) 22%,transparent);border-radius:10px;padding:16px 16px 10px;box-shadow:0 8px 24px rgba(15,25,60,.06);position:relative}
+  .suggest::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:2px;background:var(--ui-accent)}
+  .suggest .sec-label{padding-top:0;margin-bottom:6px;letter-spacing:.1em;position:relative;z-index:1}
+  .suggest .sec-sub{margin-top:6px;margin-bottom:6px;line-height:1.5}
+
+  .badge{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:3px 7px;border:1px solid var(--ui-stroke-tertiary);color:var(--ui-text-tertiary);background:#fff;font-weight:600}
+  .badge.doc{color:var(--ui-cyan);border-color:color-mix(in srgb,var(--ui-cyan) 35%,transparent)}
+  .badge.issue{color:var(--ui-warm);border-color:color-mix(in srgb,var(--ui-warm) 45%,transparent)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{font:inherit;font-size:.75rem;border:1.5px solid var(--ui-stroke-tertiary);background:#fff;color:var(--ui-text-secondary);
+    border-radius:20px;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;letter-spacing:-.01em;transition:all .12s ease;box-shadow:0 1px 2px rgba(0,0,0,.02)}
+  .chip:hover{background:var(--ui-control-hover);color:var(--ui-text-primary);border-color:color-mix(in srgb,var(--ui-accent) 30%,transparent);box-shadow:0 2px 5px rgba(0,0,0,.05)}
+  .chip i{width:7px;height:7px;border-radius:50%;background:var(--ui-accent);display:block;flex:0 0 auto}
+
+  .empty{padding:28px 6px;text-align:center;color:var(--ui-text-tertiary);font-size:.82rem;line-height:1.55;letter-spacing:-.01em}
+  .empty b{color:var(--ui-text-secondary);font-weight:600;display:block;margin-bottom:6px;font-size:.85rem}
+
+  .foot{padding:14px 24px;border-top:1px solid var(--ui-stroke-quaternary);font-size:.66rem;color:var(--ui-text-quaternary);display:flex;justify-content:space-between;gap:12px;background:var(--ui-bg-quinary);letter-spacing:.01em}
+</style>
+</head>
+<body>
+  <div class="pagetop">
+    <h1>Cheatsheet plugin <span>· desktop/plugin.js reframe — v1, capability-neutral</span></h1>
+    <p>Same file, same tabs, same data. The only change is intent framing plus a curated “Suggested” block. No <code>llm.oneshot</code>, no new RPCs, no network — the disclosure line stays true. The corpus below is an expanded handwritten subset so the intent search can be tested end-to-end; <code>?selftest=1</code> runs the eval suite.</p>
+    <div class="switcher" role="tablist">
+      <button data-state="before" aria-pressed="true">Before — as published</button>
+      <button data-state="a" aria-pressed="false">After · A — search-first</button>
+      <button data-state="b" aria-pressed="false">After · B — discover-first</button>
+    </div>
+    <div class="hint"><span class="kbd">⌘K</span> focuses the field. The <b>Practices</b> tab now models the real plugin: a live keyword search over the install’s docs (query-time) plus a frozen community file — not a dead list.</div>
+    <div class="evalline" id="evalLine"></div>
+  </div>
+
+  <div class="stage">
+    <div class="titlebar">
+      <div class="traffic"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <span class="mark" title="Cheatsheet"><svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5" stroke="currentColor"/><path d="M4.5 5.5h7M4.5 8h7M4.5 10.5h4.5" stroke="currentColor" stroke-linecap="round"/></svg></span>
+      <span class="filetitle">hermes — main session</span>
+    </div>
+    <div class="appbody" aria-hidden="true">
+      <div class="bubble user">can you refactor the parser and add tests?</div>
+      <div class="bubble bot">I'll start with the failing edge cases in <code>parse_anchor()</code> — give me a moment while I map the call sites.</div>
+      <div class="bubble user">actually — quick thing while you work</div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="dialog" role="dialog" aria-modal="true">
+      <div class="dlg-head">
+        <div class="row"><h2 id="dlgTitle">Cheatsheet</h2><span class="tag" id="dlgTag">v1</span></div>
+        <p id="dlgDesc"></p>
+      </div>
+      <div class="dlg-body">
+        <div class="search">
+          <span class="lens"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-linecap="round"/></svg></span>
+          <input id="q" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="tabs" id="tabs"></div>
+        <div class="facets" id="facets" hidden>
+          <button data-facet="all" aria-pressed="true">Docs &amp; issues</button>
+          <button data-facet="doc" aria-pressed="false">Docs</button>
+          <button data-facet="issue" aria-pressed="false">Issues</button>
+        </div>
+        <div id="content"></div>
+      </div>
+      <div class="foot"><span id="footLeft"></span><span id="footRight"></span></div>
+    </div>
+  </div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   HANDWRITTEN TEST CORPUS  (mockup only)
+   The shipped plugin reads CMD/PLUGINS live from the gateway (per profile);
+   DOCS models the install's website/docs chunks; ISSUES mirrors community.json
+   (the frozen GitHub excerpts copied at release time).
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const CMD = {
+  help:{g:'Core',d:'Show the command list and keybindings'},
+  new:{g:'Core',d:'Start a fresh session'},
+  clear:{g:'Core',d:'Clear the visible transcript'},
+  compact:{g:'Core',d:'Compress the conversation to save context'},
+  undo:{g:'Core',d:'Revert the last turn'},
+  redo:{g:'Core',d:'Re-apply the last undone turn'},
+  status:{g:'Core',d:'Show session, model and gateway status'},
+  stop:{g:'Core',d:'Interrupt the model mid-turn'},
+  model:{g:'Session',d:'Switch the active model'},
+  handoff:{g:'Session',d:'Move this session to another platform'},
+  resume:{g:'Session',d:'Reopen a previous session'},
+  branch:{g:'Session',d:'Fork the conversation into a new branch'},
+  title:{g:'Session',d:'Rename this session'},
+  btw:{g:'Session',d:'Ask a side question without derailing the current turn'},
+  bg:{g:'Session',d:'Queue a prompt to run in the background'},
+  goal:{g:'Session',d:'Draft a goal and plan from one sentence'},
+  memory:{g:'Context',d:'Show and edit memory notes'},
+  skills:{g:'Context',d:'List and run skills'},
+  rules:{g:'Context',d:'List the always-on rules in the prompt'},
+  context:{g:'Context',d:'Break down what is filling the context window'},
+  forget:{g:'Context',d:'Drop a memory note'},
+  cron:{g:'Automation',d:'Schedule a recurring job'},
+  plugins:{g:'Automation',d:'Manage agent plugins'},
+  mcp:{g:'Automation',d:'Manage MCP servers'},
+  tools:{g:'Automation',d:'List the tools available this turn'},
+  shell:{g:'Automation',d:'Run a shell command on this machine'},
+  sandbox:{g:'Automation',d:'Toggle the sandbox for tool calls'},
+  skin:{g:'Appearance',d:'Recolor the active skin'},
+  theme:{g:'Appearance',d:'Pick a light or dark theme'},
+  font:{g:'Appearance',d:'Change the chat font'},
+  personality:{g:'Appearance',d:'Pick the agent personality'},
+  attach:{g:'Files',d:'Attach a file to the conversation'},
+  image:{g:'Files',d:'Attach or generate an image'},
+  pdf:{g:'Files',d:'Attach a PDF'},
+  project:{g:'Files',d:'Switch the active project'},
+  workspace:{g:'Files',d:'Change the working directory'},
+  export:{g:'Files',d:'Export this session'},
+  voice:{g:'Input',d:'Toggle voice input'},
+  wake:{g:'Input',d:'Start the wake-word listener'},
+  notify:{g:'Input',d:'Control desktop notifications'},
+  usage:{g:'Account',d:'Show token usage'},
+  billing:{g:'Account',d:'Open billing and plan'},
+  plan:{g:'Account',d:'Change the subscription plan'},
+  login:{g:'Account',d:'Sign in or switch account'},
+};
+const PLUGINS = [
+  {n:'cheatsheet',s:'enabled',src:'git',d:'Title-bar cheatsheet — this plugin'},
+  {n:'quantified-self',s:'enabled',src:'git',d:'n=1 tracking panels'},
+  {n:'asfai-learning',s:'enabled',src:'git',d:'ASFAI education tools'},
+  {n:'codebase-memory',s:'enabled',src:'mcp',d:'stdio · graph code search'},
+  {n:'marketing-scouter',s:'enabled',src:'git',d:'Scout-then-draft content tool'},
+  {n:'blogwatcher',s:'enabled',src:'git',d:'Monitor blogs and feeds'},
+  {n:'arxiv',s:'enabled',src:'git',d:'Search arXiv papers'},
+  {n:'google-workspace',s:'enabled',src:'git',d:'Gmail, Calendar, Drive'},
+  {n:'kanban',s:'enabled',src:'bundled',d:'Task board'},
+  {n:'hermes-bots',s:'enabled',src:'bundled',d:'Bot mode / routines'},
+  {n:'brain-farts',s:'enabled',src:'git',d:'Capture raw ideas'},
+  {n:'terminal-dashboards',s:'enabled',src:'git',d:'Live TUI panels in tmux'},
+];
+// DOCS = install's website/docs chunks (read at query time in the real plugin)
+const DOCS = [
+  {id:'d1',title:"Don't Break the Prompt Cache",where:'concepts/prompt-cache',ex:'Skills, tools and memory changes wait until the next session unless you pass --now; that protects the prompt cache so a running conversation keeps its cached prefix.'},
+  {id:'d2',title:'Change skins',where:'user-guide/appearance/skins',ex:'hermes skin set <key> #rrggbb recolors the active skin in place. Do not fork the default skin to change one color — that drops the rest of the palette.'},
+  {id:'d3',title:'Hot-reload a desktop plugin',where:'plugins/desktop-plugins',ex:'A desktop plugin loads from ~/.hermes/desktop-plugins. After editing, press ⌘K and choose Reload desktop plugins. The toast names any load error.'},
+  {id:'d4',title:'Delegate for parallel work',where:'concepts/delegation',ex:'delegate_task fans out independent subtasks to isolated subagents; each returns only its final summary. Use it for reasoning-heavy work you do not want in the main context.'},
+  {id:'d5',title:'Parallel research with subagents',where:'use-cases/parallel-research',ex:'Dispatch several researchers at once, each on one thread, then aggregate. Children know nothing of this conversation — pass all needed context in the task.'},
+  {id:'d6',title:'Slash commands',where:'user-guide/commands',ex:'Built-in commands run as commands; a skill command is sent as a normal prompt. Terminal-only commands are hidden from the desktop list.'},
+  {id:'d7',title:'Side questions with /btw and /bg',where:'user-guide/commands#background',ex:'/btw asks a side question without derailing the current turn. /bg queues a prompt to run in the background while the main turn continues.'},
+  {id:'d8',title:'Scheduling with cron',where:'automation/cron',ex:'cronjob creates recurring jobs. Output is saved and can be delivered to a messaging platform; local-only jobs do not message you back.'},
+  {id:'d9',title:'Connectors and the hosted catalog',where:'capabilities/connectors',ex:'Connectors (Gmail, Notion, Slack, …) are hosted accounts served through the gateway. connectors.catalog lists what the scoped member can connect.'},
+  {id:'d10',title:'Memory and notes',where:'concepts/memory',ex:'Memory is injected into every session. It is a narrow store for facts that apply everywhere; task procedures belong in skills instead.'},
+  {id:'d11',title:'Profiles and workspaces',where:'user-guide/profiles',ex:'Each profile has its own skills, plugins, cron and memory. Switching profile switches the whole working state.'},
+  {id:'d12',title:'Bot mode and routines',where:'plugins/bots',ex:'The bundled Bots plugin docks a roster and routines pane in the sidebar. Enable its desktop toggle to show the tab.'},
+  {id:'d13',title:'Model routing and fallbacks',where:'models/routing',ex:'Set a default model and fallback providers. The router alias can resolve per request; pin a model when you need the resolved id in usage reports.'},
+  {id:'d14',title:'The vault and credentials',where:'security/vault',ex:'Logins, cards and addresses live in the vault and are filled by name. Secrets never enter the conversation or the plugin.'},
+  {id:'d15',title:'Voice and wake word',where:'voice/overview',ex:'voice.toggle records and transcribes; wake.start listens for the wake word. STT quality varies by provider.'},
+  {id:'d16',title:'Installing plugins from the Hub',where:'plugins/hub',ex:'hermes plugins install <name> installs from the curated catalog at a pinned SHA. Updates are a reviewed SHA bump, never a self-update.'},
+];
+// ISSUES = community.json (frozen GitHub excerpts, copied at release)
+const ISSUES = [
+  {id:'gh:71446',title:"fix(desktop): custom backend skins don't persist across restarts",where:'issues/71446',url:'https://github.com/NousResearch/hermes-agent/issues/71446',ex:'Custom skins in ~/.hermes/skins/*.yaml do not survive a desktop restart; normalizeSkin() rejects a name not yet in the live registry.'},
+  {id:'gh:81785',title:'Desktop theming is capped by hardcoded CSS knobs and a fixed Shiki theme',where:'issues/81785',url:'https://github.com/NousResearch/hermes-agent/issues/81785',ex:'Accent-mix knobs are hardcoded in styles.css and unreachable from themes; code-block colors ignore the active theme entirely.'},
+  {id:'gh:107486',title:'Inline code in async-delegation/cron results renders dark ink on every dark theme',where:'issues/107486',url:'https://github.com/NousResearch/hermes-agent/issues/107486',ex:'The themed inline-code rule is scoped to the assistant slot only, so system-message surfaces miss it.'},
+  {id:'gh:73987',title:'Desktop startup ignores display.skin for backend-authored/user skins',where:'issues/73987',url:'https://github.com/NousResearch/hermes-agent/issues/73987',ex:'Desktop launches in the default nous theme until a later skin.changed event; built-in skins persist but user skins do not.'},
+];
+
+// v1 curated intent map: phrase → command ids and/or doc/issue ids. Everything is validated before render.
+const INTENTS = [
+  {keys:['without interrupting','side question','quick question','by the way','interrupt the model','while you work'], cmds:['btw','bg'], docs:['d7']},
+  {keys:['in the background','background','without blocking','long job','keep working','asynchronously'], cmds:['bg'], docs:['d7']},
+  {keys:['schedule','recurring','every day','remind me','cron job','daily','weekly'], cmds:['cron'], docs:['d8']},
+  {keys:['add a skill','reusable','skill library','automate a prompt'], cmds:['skills']},
+  {keys:['change model','switch model','smarter model','cheaper model','different model','stronger model'], cmds:['model'], docs:['d13']},
+  {keys:['out of context','too long','compress','save tokens','context limit','running out of','context window'], cmds:['compact','context'], docs:['d1']},
+  {keys:['connect gmail','connect notion','connect slack','connector','integration','link my account','gmail','notion','slack'], docs:['d9']},
+  {keys:['remember','memory','note that','keep in mind'], cmds:['memory'], docs:['d10']},
+  {keys:['dark mode','light mode','change colors','recolor','theme','skin'], cmds:['skin','theme'], docs:['d2']},
+  {keys:['run a command','shell','terminal','on my machine'], cmds:['shell']},
+  {keys:['attach a file','upload','send a file','add a document'], cmds:['attach','pdf','image']},
+  {keys:['start fresh','new conversation','clear everything','begin again'], cmds:['new','clear']},
+  {keys:['voice','talk to it','dictate','speech'], cmds:['voice'], docs:['d15']},
+  {keys:['hot reload','refresh the plugin','reload a plugin','reload desktop'], docs:['d3']},
+  {keys:['delegate','parallel agents','multiple agents','subagent','fan out'], docs:['d4','d5']},
+  {keys:['kanban','task board','todo board'], docs:['d4']},
+  {keys:['profile','different workspace','switch workspace'], docs:['d11']},
+  {keys:['prompt cache','cache hit','cache miss'], docs:['d1']},
+  {keys:['install a plugin','install plugins','the hub','plugin catalog','plugins from'], docs:['d16']},
+  {keys:['resume','pick up where','previous session','continue earlier'], cmds:['resume']},
+];
+const CHIPS = [
+  ['Ask without interrupting the model','without interrupting'],
+  ['Run something in the background','in the background'],
+  ['Schedule a recurring job','schedule'],
+  ['Switch to a cheaper model','change model'],
+  ['The conversation is getting long','too long'],
+  ['Add a reusable skill','add a skill'],
+  ['Connect Gmail or Notion','gmail'],
+  ['Hot-reload a plugin I am editing','hot reload'],
+  ['Delegate this to parallel agents','delegate'],
+  ["Don't break the prompt cache",'prompt cache'],
+];
+const PROMPTS = ["Don't Break the Prompt Cache",'Change skins','desktop plugin hot reload','Delegate for Parallel Work','Parallel Research','Kanban vs delegate_task','Installing from the Hub'];
+const GAPS = ['Reddit is not in the index.','X posts are not in the index.'];
+
+// eval suite: query → ids that MUST appear in the intent result
+const EVAL = [
+  {q:'ask a quick question without interrupting the model', cmds:['btw','bg']},
+  {q:'run this in the background', cmds:['bg']},
+  {q:'schedule a daily reminder', cmds:['cron']},
+  {q:'the context is getting too long', cmds:['compact']},
+  {q:'switch to a cheaper model', cmds:['model']},
+  {q:'add a reusable skill', cmds:['skills']},
+  {q:'make everything dark mode', cmds:['skin','theme']},
+  {q:'run a command on my machine', cmds:['shell']},
+  {q:'resume my previous session', cmds:['resume']},
+  {q:'turn on voice input', cmds:['voice']},
+  {q:'hot reload a plugin', docs:['d3']},
+  {q:'how do I not break the prompt cache', docs:['d1']},
+  {q:'delegate this to parallel agents', docs:['d4']},
+  {q:'connect my gmail', docs:['d9']},
+  {q:'where do I install plugins from', docs:['d16']},
+  {q:'xyzzy frobnicate the widget', none:true},
+];
+
+const $=s=>document.querySelector(s);
+const PARAMS=new URLSearchParams(location.search);
+let STATE=PARAMS.get('state')||'before', TAB=PARAMS.get('tab')||'commands', Q=PARAMS.get('q')||'', FACET='all';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DOC_BY_ID=Object.fromEntries(DOCS.map(d=>[d.id,d]));
+const ISSUE_BY_ID=Object.fromEntries(ISSUES.map(i=>[i.id,i]));
+const PLUG_BY_NAME=Object.fromEntries(PLUGINS.map(p=>[p.n,p]));
+const STOP=new Set('the a an of to and or in on for with is are be this that it as at by from your you not do i my how can'.split(' '));
+const tok=s=>String(s).toLowerCase().replace(/[^a-z0-9+#./-]+/g,' ').split(' ').filter(t=>t.length>1&&!STOP.has(t));
+
+// intent search — query must CONTAIN a known phrase; returns union across matched intents
+function intentSearch(q){
+  const n=q.trim().toLowerCase();
+  const out={cmds:[],docs:[],plugins:[]};
+  if(n.length<4) return out;
+  const matched=[];
+  for(const it of INTENTS){ let s=0; for(const k of it.keys){ if(n.includes(k)) s+=k.length+2; } if(s>0) matched.push({s,it}); }
+  matched.sort((a,b)=>b.s-a.s);
+  const cmds=new Set(),docs=new Set(),plugs=new Set();
+  for(const {it} of matched.slice(0,3)){
+    (it.cmds||[]).forEach(c=>{ if(CMD[c]) cmds.add(c); });
+    (it.docs||[]).forEach(d=>{ if(DOC_BY_ID[d]) docs.add(d); });
+    (it.plugins||[]).forEach(p=>{ if(PLUG_BY_NAME[p]) plugs.add(p); });
+  }
+  out.cmds=[...cmds]; out.docs=[...docs]; out.plugins=[...plugs];
+  return out;
+}
+function hasLiteral(q){ const n=q.trim().toLowerCase(); return !n || Object.entries(CMD).some(([k,v])=>k.includes(n)||v.d.toLowerCase().includes(n)); }
+function filteredCmds(q){ const n=q.trim().toLowerCase(); const g={}; for(const [k,v] of Object.entries(CMD)){ if(n && !(k.includes(n)||v.d.toLowerCase().includes(n))) continue; (g[v.g]=g[v.g]||[]).push(k); } return g; }
+
+// the real plugin's docs/issue search (BM25-ish). Kept separate from the intent map on purpose.
+function docSearch(q, facet){
+  const terms=tok(q);
+  const pool=[...DOCS.map(d=>({...d,kind:'doc'})), ...ISSUES.map(i=>({...i,kind:'issue'}))].filter(x=>facet==='all'||x.kind===facet);
+  if(!terms.length) return pool.slice(0,6);
+  const scored=pool.map(x=>{
+    const hay=(' '+tok(x.title+' '+x.ex).join(' ')+' ');
+    let s=0; for(const t of terms){ if(hay.includes(' '+t+' ')) s+=1; if(tok(x.title).includes(t)) s+=1.4; }
+    return {x,s};
+  }).filter(r=>r.s>0).sort((a,b)=>b.s-a.s);
+  return scored.slice(0,6).map(r=>r.x);
+}
+
+function cmdRow(k){
+  return `<div class="row-item"><span class="cmd">/${esc(k)}</span>
+    <div class="txt"><div class="d">${esc(CMD[k].d)}</div><span class="src">↗ docs · commands#${esc(k)}</span></div>
+    <button class="copy" data-copy="/${esc(k)}">Copy</button></div>`;
+}
+function passageRow(x){
+  const kind=x.kind||(String(x.id).startsWith('gh:')?'issue':'doc');
+  return `<div class="row-item">
+    <div class="txt">
+      <div class="d">${esc(x.title)}</div>
+      <div class="ex">${esc(x.ex)}</div>
+      <span class="src">↗ <a href="${esc(x.url||('https://hermes-agent.nousresearch.com/docs/'+x.where))}" target="_blank" rel="noopener">${esc(x.where)}</a></span>
+    </div>
+    <span class="badge ${kind==='issue'?'issue':'doc'}">${kind==='issue'?'GitHub':'Docs'}</span>
+  </div>`;
+}
+function pluginRow(p){
+  return `<div class="row-item"><span class="cmd">${esc(p.n)}</span>
+    <div class="txt"><div class="d">${esc(p.d)}</div><span class="src">${esc(p.src)} · ${esc(p.s)}</span></div>
+    <span class="badge">${esc(p.s)}</span></div>`;
+}
+
+function commandsHTML(){
+  const g=filteredCmds(Q), keys=Object.keys(g);
+  if(!keys.length) return `<div class="empty"><b>No command matches “${esc(Q)}”</b>Try describing the task — “ask a question without interrupting”.</div>`;
+  return keys.map(k=>`<div class="sec-label">${esc(k)}</div>`+g[k].map(cmdRow).join('')).join('');
+}
+function pluginsHTML(){
+  const n=Q.trim().toLowerCase();
+  const rows=PLUGINS.filter(p=>!n||p.n.includes(n)||p.d.toLowerCase().includes(n));
+  if(!rows.length) return `<div class="empty"><b>No plugin matches “${esc(Q)}”</b></div>`;
+  return `<div class="sec-label">Agent plugins · live for this profile</div>`+rows.map(pluginRow).join('')
+    +`<p class="sec-sub" style="margin-top:8px">This cheatsheet is itself a desktop plugin — it lives in desktop-plugins, not this list.</p>`;
+}
+function practicesHTML(){
+  const hits=docSearch(Q,FACET);
+  const head=`<div class="sec-label">Cited passages · ${hits.filter(h=>(h.kind||(String(h.id).startsWith('gh:')?'issue':'doc'))==='doc').length} docs, ${hits.filter(h=>(h.kind||(String(h.id).startsWith('gh:')?'issue':'doc'))==='issue').length} issues</div>`;
+  const promptsRow = !Q.trim() ? `<div class="chips" style="margin-bottom:4px">${PROMPTS.slice(0,6).map(p=>`<button class="chip" data-key="${esc(p)}"><i></i>${esc(p)}</button>`).join('')}</div>` : '';
+  const list = hits.length ? hits.map(passageRow).join('') : `<div class="empty"><b>Nothing matches “${esc(Q)}”</b>The index covers this install’s docs and a frozen set of GitHub excerpts.</div>`;
+  return head + promptsRow + list + `<p class="sec-sub" style="margin-top:10px">Frozen by design: ${GAPS.join(' ')}</p>`;
+}
+function suggestionsHTML(){
+  const r=intentSearch(Q);
+  const has=r.cmds.length||r.docs.length||r.plugins.length;
+  if(!has) return '';
+  const parts=[];
+  if(r.cmds.length){ parts.push(`<div class="sec-label"><b>Suggested</b> · commands, matched to your words</div>`);
+    parts.push(r.cmds.map(cmdRow).join('')); }
+  if(r.docs.length){ if(!r.cmds.length) parts.push(`<div class="sec-label"><b>Suggested</b> · from this install’s docs</div>`);
+    parts.push(r.docs.map(id=>passageRow(DOC_BY_ID[id])).join('')); }
+  if(r.plugins.length){ parts.push(r.plugins.map(n=>pluginRow(PLUG_BY_NAME[n])).join('')); }
+  return `<div class="suggest"><div class="sec-sub" style="margin-top:0">Curated shortcuts — each is a real command or a cited passage. Nothing is generated.</div>${parts.join('')}</div>`;
+}
+function chipsHTML(){
+  return `<div class="sec-label">Common things people want</div>
+    <div class="chips">${CHIPS.map(([label,key])=>`<button class="chip" data-key="${esc(key)}"><i></i>${esc(label)}</button>`).join('')}</div>`;
+}
+
+function render(){
+  $('#tabs').innerHTML=
+    `<button data-tab="commands" aria-pressed="${TAB==='commands'}">Commands ${Object.keys(CMD).length}</button>
+     <button data-tab="plugins" aria-pressed="${TAB==='plugins'}">Plugins</button>
+     <button data-tab="practices" aria-pressed="${TAB==='practices'}">Practices</button>`;
+  $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{TAB=b.dataset.tab;render()});
+  $('#facets').hidden = TAB!=='practices';
+  $('#facets').querySelectorAll('button').forEach(b=>b.onclick=()=>{FACET=b.dataset.facet;render()});
+
+  const after = STATE!=='before';
+  $('#dlgTitle').textContent='Cheatsheet';
+  $('#dlgTag').textContent = after ? 'v1 · reframed' : 'published';
+  $('#dlgDesc').textContent = after
+    ? 'Describe what you want to do. Suggestions point to a real command or a cited passage from this install’s docs — nothing is generated, nothing invented.'
+    : 'Commands and plugins are live from this gateway. Practices retrieves cited passages — it does not invent advice.';
+  const inp=$('#q'); if(inp.value!==Q) inp.value=Q;
+  inp.placeholder = TAB==='practices' ? 'A situation, not a chat'
+    : (after ? 'What do you want to do?   e.g. ask a question without interrupting the model' : 'Filter commands and plugins');
+  $('#footLeft').textContent = after ? 'Curated shortcuts · live commands from this gateway' : 'Live from this gateway · terminal-only commands hidden';
+  $('#footRight').textContent = after ? (Q?`matched “${Q}”`:'type or pick one') : '';
+
+  let html;
+  if(TAB==='plugins') html = pluginsHTML();
+  else if(TAB==='practices') html = practicesHTML();
+  else {
+    if(STATE==='b' && !Q.trim()){ html = chipsHTML() + `<div class="sec-label">All commands</div>` + commandsHTML(); }
+    else {
+      const sug=suggestionsHTML();
+      html = (sug && !hasLiteral(Q)) ? sug
+        : sug + `<div class="sec-label">${sug?'Other commands':(Q?'Matching commands':'All commands')}</div>` + commandsHTML();
+    }
+  }
+  $('#content').innerHTML = html;
+  $('#content').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ Q=c.dataset.key; $('#q').value=Q; render(); $('#q').focus(); });
+}
+
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t));
+  fallbackCopy(t); return Promise.resolve();
+}
+function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy')}catch(e){} document.body.removeChild(ta); }
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.copy'); if(!b) return;
+  Promise.resolve(copyText(b.dataset.copy)).then(()=>{ const o=b.textContent; b.textContent='Copied'; b.classList.add('done'); setTimeout(()=>{b.textContent=o;b.classList.remove('done')},900); });
+});
+
+$('#q').addEventListener('input',e=>{ Q=e.target.value; render(); });
+document.querySelectorAll('.switcher button').forEach(b=>b.onclick=()=>{
+  STATE=b.dataset.state; Q=''; TAB='commands'; $('#q').value='';
+  document.querySelectorAll('.switcher button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  render();
+});
+addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();$('#q').focus();} });
+document.querySelectorAll('.switcher button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.state===STATE));
+render();
+
+// ── eval suite: run every case, report pass/fail into the page and into data-selftest ──
+function runEval(){
+  return EVAL.map(c=>{
+    const r=intentSearch(c.q);
+    const okC=(c.cmds||[]).every(x=>r.cmds.includes(x));
+    const okD=(c.docs||[]).every(x=>r.docs.includes(x));
+    const okN=c.none ? (r.cmds.length===0&&r.docs.length===0&&r.plugins.length===0) : true;
+    return {q:c.q, pass:okC&&okD&&okN, cmds:r.cmds, docs:r.docs, miss:[...(c.cmds||[]).filter(x=>!r.cmds.includes(x)), ...(c.docs||[]).filter(x=>!r.docs.includes(x))]};
+  });
+}
+const EVAL_RESULT = runEval();
+const passed = EVAL_RESULT.filter(x=>x.pass).length;
+$('#evalLine').innerHTML = `Intent eval: <code>${passed}/${EVAL_RESULT.length}</code> passing${passed<EVAL_RESULT.length?' — misses: '+EVAL_RESULT.filter(x=>!x.pass).map(m=>esc(m.q)).join(' · '):''}.`;
+
+if(PARAMS.get('selftest')){
+  const report={};
+  try{
+    const C=n=>(document.querySelector('#content').innerText||'').replace(/\s+/g,' ').trim().slice(0,n);
+    STATE='b'; Q=''; TAB='commands'; $('#q').value=''; render();
+    report.tabs=[...document.querySelectorAll('#tabs button')].map(b=>b.textContent.trim());
+    report.corpus={cmds:Object.keys(CMD).length, plugins:PLUGINS.length, docs:DOCS.length, issues:ISSUES.length, intents:INTENTS.length, chips:CHIPS.length};
+    report.chipCount=document.querySelectorAll('.chip').length;
+    document.querySelector('.chip').click();
+    report.afterChipClick=C(120); report.fieldAfterChip=$('#q').value;
+    const q=$('#q'); q.value='schedule a recurring job'; q.dispatchEvent(new Event('input',{bubbles:true}));
+    report.cronSuggest=C(120);
+    q.value='a'; q.dispatchEvent(new Event('input',{bubbles:true})); report.shortQuery=C(70);
+    q.value=''; q.dispatchEvent(new Event('input',{bubbles:true}));
+    [...document.querySelectorAll('#tabs button')].find(b=>b.textContent.trim()==='Practices').click();
+    report.practicesEmpty=C(90);
+    q.value='dark theme problems'; q.dispatchEvent(new Event('input',{bubbles:true})); report.practicesQuery=C(120);
+    [...document.querySelectorAll('#tabs button')].find(b=>b.textContent.trim().startsWith('Commands')).click();
+    report.eval=EVAL_RESULT.map(r=>({q:r.q,pass:r.pass}));
+    report.evalPass=passed; report.evalTotal=EVAL_RESULT.length;
+    STATE='before'; Q=''; TAB='commands'; $('#q').value=''; render();
+    report.beforeTabs=[...document.querySelectorAll('#tabs button')].map(b=>b.textContent.trim());
+  }catch(e){ report.error=String(e); }
+  document.body.setAttribute('data-selftest', btoa(encodeURIComponent(JSON.stringify(report))));
+}
+</script>
+</body>
+</html>
