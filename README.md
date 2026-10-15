@@ -17,6 +17,12 @@ The map is data (`cheatsheet_intents.py`) served by the plugin's local
 before render; unknown ids are dropped. If the backend half is disabled, the tab
 falls back to plain filtering — no fake suggestions.
 
+## Status
+
+Active plugin, v0.2.0 (version lives in `plugin.yaml`). It is a Hermes Desktop
+plugin — there is nothing to run standalone; install it into the Desktop app and
+use it from the title bar.
+
 ## What this plugin reads
 
 - It reads `website/docs` next to the installed `hermes_cli` package and returns copied passages. It does not send those files anywhere.
@@ -43,3 +49,11 @@ standalone plugin.
 python3 -m venv .venv && .venv/bin/pip install pytest fastapi
 .venv/bin/python -m pytest
 ```
+
+## Where the code lives
+
+- `cheatsheet_intents.py` — the curated intent→command map (the `/suggest` backend).
+- `cheatsheet_index.py` — pulls cited passages from this install's Hermes docs tree.
+- `desktop/plugin.js` — the Desktop title-bar frontend.
+- `community.json` — issue excerpts copied at release time (no runtime network).
+- `plugin.yaml` — plugin metadata and version.
