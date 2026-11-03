@@ -25,7 +25,7 @@ use it from the title bar.
 
 ## What this plugin reads
 
-- It reads `website/docs` next to the installed `hermes_cli` package and returns copied passages. It does not send those files anywhere.
+- It reads local Markdown and MDX from `apps/docs/content/en`, falling back to `website/docs` on older Hermes installs, and returns copied passages. It does not send those files anywhere.
 - It does not fetch GitHub, Reddit, or X at runtime. Issue excerpts in `community.json` were copied at release time.
 - It does not update its own files. Code updates are `hermes plugins update cheatsheet` after a reviewed catalog pin.
 - It registers no tools and asks for no environment variables.

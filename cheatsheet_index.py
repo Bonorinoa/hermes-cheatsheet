@@ -42,6 +42,27 @@ FILLER = STOP | {
 }
 
 
+def _doc_files(docs_root: Path) -> list[Path]:
+    """Sorted Markdown/MDX files, excluding dot-paths and duplicate stems.
+
+    Prefer .md for a shared stem so legacy trees keep their indexed source.
+    """
+    if not docs_root.is_dir():
+        return []
+    files: list[Path] = []
+    stems: set[str] = set()
+    for path in sorted((*docs_root.rglob("*.md"), *docs_root.rglob("*.mdx"))):
+        rel = path.relative_to(docs_root)
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        stem = rel.with_suffix("").as_posix()
+        if stem in stems:
+            continue
+        stems.add(stem)
+        files.append(path)
+    return files
+
+
 def _clean(text: str) -> str:
     text = re.sub(r"```.*?```", lambda m: " " + m.group(0).replace("`", "") + " ", text, flags=re.S)
     text = re.sub(r"`([^`]+)`", r"\1", text)
@@ -94,12 +115,8 @@ class Index:
 
 def _chunk_docs(docs_root: Path) -> list[dict]:
     chunks = []
-    if not docs_root.is_dir():
-        return chunks
-    for path in sorted(docs_root.rglob("*.md")):
+    for path in _doc_files(docs_root):
         rel = path.relative_to(docs_root)
-        if any(part.startswith(".") for part in rel.parts):
-            continue
         raw = path.read_text(encoding="utf-8", errors="replace")
         raw = re.sub(r"^---\n.*?\n---\n", "", raw, count=1, flags=re.S)
         file_title = path.stem.replace("-", " ").replace("_", " ")
@@ -202,12 +219,11 @@ _CACHE: dict = {"sig": None, "index": None}
 def docs_signature(docs_root: Path) -> tuple:
     if not docs_root.is_dir():
         return ("missing",)
+    files = _doc_files(docs_root)
     newest = 0
-    count = 0
-    for path in docs_root.rglob("*.md"):
-        count += 1
+    for path in files:
         newest = max(newest, path.stat().st_mtime_ns)
-    return (str(docs_root), count, newest)
+    return (str(docs_root), len(files), newest)
 
 
 def get_cached_index(docs_root: Path, community: list[dict]) -> Index:
@@ -221,7 +237,12 @@ def get_cached_index(docs_root: Path, community: list[dict]) -> Index:
 
 
 def docs_root_for_install() -> Path | None:
+    """Find this install's docs tree, preferring the current layout."""
     import hermes_cli
 
-    root = Path(hermes_cli.__file__).resolve().parent.parent / "website" / "docs"
-    return root if root.is_dir() else None
+    checkout = Path(hermes_cli.__file__).resolve().parent.parent
+    for rel in ("apps/docs/content/en", "website/docs"):
+        root = checkout / rel
+        if root.is_dir():
+            return root
+    return None
